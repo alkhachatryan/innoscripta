@@ -24,4 +24,13 @@ class ProductsResourceController extends Controller
 
         return $products->paginate($limit);
     }
+
+    public function single($slug){
+        $product = Product::whereSlug($slug)->first();
+
+        if(! $product)
+            return response()->json(Product::NOT_FOUND, 404);
+
+        return response()->json($product);
+    }
 }
