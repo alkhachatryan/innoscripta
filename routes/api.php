@@ -9,6 +9,7 @@ Route::group(['middleware' => 'setHeaders'], function (){
     });
 
     Route::group(['prefix' => 'cart', 'namespace' => 'Cart', 'as' => 'cart.'], function (){
-        Route::post('/add', ['as' => 'add', 'uses' => 'CartController@addToCart']);
+        Route::post('/update', ['as' => 'add_update', 'uses' => 'CartController@updateOrCreateCartItem']);
+        Route::delete('/delete', ['as' => 'delete', 'uses' => 'CartController@removeCartItem']);
     });
 });

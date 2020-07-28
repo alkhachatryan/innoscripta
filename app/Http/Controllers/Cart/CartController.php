@@ -5,39 +5,66 @@ namespace App\Http\Controllers\Cart;
 use App\Cart;
 use App\CartItem;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Cart\AddToCartRequest;
-use Illuminate\Http\Request;
+use App\Http\Requests\Cart\RemoveCartItemRequest;
+use App\Http\Requests\Cart\UpdateCartRequest;
 use Illuminate\Support\Facades\Auth;
 
 class CartController extends Controller
 {
-    public function addToCart(AddToCartRequest $request){
+    private function getCustomerIdentification($request){
+        $userIdentifier = new \stdClass();
+
         if(Auth::guard('api')->check()){
-            $userIdentifierColumnName = 'user_id';
-            $userIdentifierValue = Auth::guard('api')->id;
+            $userIdentifier->columnName = 'user_id';
+            $userIdentifier->value = Auth::guard('api')->id;
         }
         else {
             if(! $request->filled('guest_token'))
-                return response()->json('Unauthorized', 401);
+                return false;
 
-            $userIdentifierColumnName = 'guest_token';
-            $userIdentifierValue = $request->input('guest_token');
+            $userIdentifier->columnName = 'guest_token';
+            $userIdentifier->value = $request->input('guest_token');
         }
 
-        $cart = Cart::firstOrCreate([ $userIdentifierColumnName => $userIdentifierValue ]);
+        return $userIdentifier;
+    }
+
+    public function updateOrCreateCartItem(UpdateCartRequest $request){
+        if(! $userIdentifier = $this->getCustomerIdentification($request))
+            return response()->json('Unauthorized', 401);
+
+        $cart = Cart::firstOrCreate([ $userIdentifier->columnName => $userIdentifier->value ]);
 
         $cartItem = CartItem::firstOrNew([
-           'cart_id' => $cart->id,
+            'cart_id' => $cart->id,
             'product_id' => $request->input('product_id')
         ]);
 
         $cartItem->quantity += $request->input('quantity');
         $cartItem->save();
 
-        return response()->json(Cart::ADDED_TO_CART, 201);
+        if(! $cartItem)
+            return response()->json(CartItem::NOT_FOUND, 404);
+
+        $cartItem->quantity += $request->input('quantity');
+        $cartItem->save();
+
+        return response()->json(Cart::SUCCESS, 200);
     }
 
-    public function updateCart(){
+    public function removeCartItem(RemoveCartItemRequest $request){
+        if(! $userIdentifier = $this->getCustomerIdentification($request))
+            return response()->json('Unauthorized', 401);
 
+        $cartItem = CartItem::whereHas('cart', function ($query) use($userIdentifier){
+            $query->where($userIdentifier->columnName, $userIdentifier->value);
+        })
+            ->whereProductId($request->input('product_id'))
+            ->delete();
+
+        if(! $cartItem)
+            return response()->json(Cart::NOT_FOUND, 404);
+
+        return response()->json(Cart::SUCCESS, 200);
     }
 }

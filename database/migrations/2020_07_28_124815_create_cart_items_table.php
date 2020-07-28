@@ -23,8 +23,15 @@ class CreateCartItemsTable extends Migration
             // The product element should not be duplicated, instead of it increment the quantity
             $table->unique(['cart_id', 'product_id']);
 
-            $table->foreign('cart_id')->references('id')->on('carts');
-            $table->foreign('product_id')->references('id')->on('products');
+            $table->foreign('cart_id')
+                ->references('id')
+                ->on('carts')
+                ->cascadeOnDelete();
+
+            $table->foreign('product_id')
+                ->references('id')
+                ->on('products')
+                ->cascadeOnDelete();
         });
     }
 

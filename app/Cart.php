@@ -8,7 +8,8 @@ class Cart extends Model
 {
     protected $fillable = ['user_id', 'guest_token'];
 
-    const ADDED_TO_CART = 'Successfully added';
+    const SUCCESS = 'Success';
+    const NOT_FOUND = 'Not found';
 
     public function user(){
         return $this->belongsTo(User::class);
